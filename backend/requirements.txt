@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+python-dotenv
+groq==0.9.0
+httpx==0.27.0
+pypdf
+PyJWT
+cryptography
+python-multipart

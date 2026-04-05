@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useAuth } from "@clerk/nextjs";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 
 type Note = {
-  id: number; // ✅ FIXED
+  id: number;
   content: string;
+  created_at?: string;
 };
 
-const API = "http://localhost:8000";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function NotesPage() {
+  const { getToken, isLoaded, userId } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +23,14 @@ export default function NotesPage() {
   const fetchNotes = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/notes`);
+
+      const token = await getToken();
+      const res = await axios.get(`${API}/notes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       setNotes(res.data);
 
       if (res.data.length > 0) {
@@ -34,8 +44,13 @@ export default function NotesPage() {
   };
 
   useEffect(() => {
+    if (!isLoaded) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     fetchNotes();
-  }, []);
+  }, [isLoaded, userId]);
 
   return (
     <main className="min-h-screen bg-[#0b0d10] text-white">
@@ -47,8 +62,6 @@ export default function NotesPage() {
 
           <div className="p-6 lg:p-8">
             <div className="mx-auto max-w-[1500px]">
-
-              {/* HEADER */}
               <div className="mb-8">
                 <p className="text-[11px] uppercase tracking-[0.28em] text-zinc-500">
                   Notes
@@ -58,10 +71,7 @@ export default function NotesPage() {
                 </h1>
               </div>
 
-              {/* GRID */}
               <div className="grid gap-6 xl:grid-cols-[320px_1fr_320px]">
-
-                {/* LEFT PANEL */}
                 <section className="rounded-[28px] border border-white/10 bg-[#111318] p-4">
                   <div className="mb-4 rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3 text-sm text-zinc-500">
                     Search notes...
@@ -86,7 +96,6 @@ export default function NotesPage() {
                           <p className="text-sm font-medium text-white">
                             Note #{note.id}
                           </p>
-
                           <p className="mt-2 line-clamp-2 text-xs leading-6 text-zinc-500">
                             {note.content}
                           </p>
@@ -96,7 +105,6 @@ export default function NotesPage() {
                   </div>
                 </section>
 
-                {/* CENTER PANEL */}
                 <section className="rounded-[28px] border border-white/10 bg-[#111318] p-6">
                   {selectedNote ? (
                     <div className="rounded-[24px] border border-white/10 bg-[#0d1016] p-6">
@@ -109,7 +117,6 @@ export default function NotesPage() {
                   )}
                 </section>
 
-                {/* RIGHT PANEL */}
                 <section className="rounded-[28px] border border-white/10 bg-[#111318] p-5">
                   <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
                     AI Copilot
@@ -117,12 +124,7 @@ export default function NotesPage() {
                   <h3 className="mt-2 text-xl font-semibold text-white">
                     Note Actions
                   </h3>
-
-                  <p className="mt-4 text-sm text-zinc-500">
-                    AI features coming next 🚀
-                  </p>
                 </section>
-
               </div>
             </div>
           </div>
