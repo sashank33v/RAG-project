@@ -98,11 +98,14 @@ export default function Home() {
     <main className="min-h-screen bg-[#0b0d10] text-white">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
         <Sidebar />
+
         <section className="flex-1">
           <Topbar />
+
           <div className="px-6 py-8 lg:px-8">
             <div className="mx-auto max-w-[1400px]">
               <Hero notesCount={notes.length} />
+
               <section className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
                 <QuickCapture
                   input={input}
@@ -117,6 +120,7 @@ export default function Home() {
                   uploading={uploading}
                 />
               </section>
+
               <section className="mt-8">
                 <MemoryGrid notes={notes} loadingNotes={loadingNotes} />
               </section>
