@@ -1,605 +1,430 @@
 # Second Brain App
 
-Second Brain App is a full-stack knowledge workspace built around four core actions:
+> A full-stack knowledge workspace for notes, PDF uploads, and AI-powered question answering over uploaded document content.
 
-1. Store notes in the knowledge system.
-2. Upload PDF documents.
-3. Browse saved knowledge in a premium dashboard-style UI.
-4. Ask AI questions grounded in uploaded document content.
+## 1. Project Snapshot
 
-The project is split into:
+### What this project is
 
-- `frontend/`: a Next.js app with Clerk authentication and a multi-page dashboard UI.
-- `backend/`: a FastAPI API backed by PostgreSQL via SQLAlchemy, with Groq used for question answering over uploaded PDF content.
+Second Brain App is a personal knowledge system built as a modern dashboard-style web app. It combines:
 
-This README is written from the current codebase, so it documents what is actually implemented now, not an idealized future version.
+- note storage
+- PDF uploads
+- document text extraction
+- AI question answering over uploaded documents
+- authenticated workspace navigation
 
-## What The Project Does
+The current codebase is an MVP with a polished frontend shell and a working backend for notes, uploads, and AI Q&A.
 
-At a high level, the app behaves like a personal knowledge hub:
+### Project at a glance
 
-- Users authenticate through Clerk.
-- The backend supports creating text notes.
-- Authenticated users can upload PDF files.
-- The backend extracts text from uploaded PDFs and stores that extracted text in the database.
-- Users can ask questions in the AI page.
-- The backend retrieves relevant text chunks from uploaded documents and sends that context to Groq for an answer.
+| Area | Current Status | Notes |
+|---|---|---|
+| Authentication | Working | Clerk protects the frontend routes |
+| Notes listing | Working | Notes are fetched from FastAPI |
+| Note creation API | Working | Backend supports it, active routed UI does not expose it directly |
+| PDF upload | Working | Only PDFs are accepted |
+| PDF text extraction | Working | Uses `pypdf` |
+| Document listing | Working | Uploads page shows stored documents |
+| AI Q&A over uploads | Working | Uses retrieval + Groq |
+| Memory search page | Prototype | Uses mock frontend data |
+| Per-user data isolation | Not implemented | All authenticated users currently share stored notes/documents |
+| Vector DB retrieval | Not active | `backend/rag.py` is prototype-only |
 
-The product direction is clearly a "second brain" or "memory OS" style application, where notes, documents, retrieval, and AI interaction live in one interface.
+## 2. Product Idea
 
-## Current Feature Set
+### Core idea
 
-### Implemented
+| Goal | Meaning in this app |
+|---|---|
+| Capture | Save knowledge as notes |
+| Collect | Upload reference PDFs |
+| Retrieve | Search or query stored knowledge |
+| Ask AI | Get answers grounded in document content |
+| Organize | Navigate all knowledge from one workspace |
 
-- Clerk-based authentication in the frontend
-- Protected frontend routes using Clerk middleware
-- Note listing
-- Note creation API
-- PDF upload with validation
-- PDF text extraction using `pypdf`
-- Document listing
-- Retrieval-augmented AI question answering over uploaded PDF text
-- Multi-page dashboard UI for:
-  - Dashboard
-  - Notes
-  - Uploads
-  - Memory
-  - AI Chat
+### Who this app is for
 
-### Partially Implemented / Prototype State
+| User Type | Why this app helps |
+|---|---|
+| Students | Save notes and query study PDFs |
+| Researchers | Upload papers and ask focused questions |
+| Founders / builders | Keep ideas, docs, and quick references in one place |
+| Personal productivity users | Treat the app like a memory OS |
 
-- The `Memory` page currently uses mock data on the frontend.
-- The active routed frontend does not currently expose a live note-creation form, even though the backend supports note creation and older prototype files include quick-capture UI.
-- The AI system retrieves only from uploaded documents, not from notes.
-- There is no true vector database in the active request path.
-- There is no per-user data isolation in the database queries yet.
-- Several extra frontend files appear to be older prototype versions and are not the routed pages currently used by the app.
-- `backend/rag.py` contains an alternative Chroma/OpenAI-based approach, but it is not wired into the live FastAPI routes.
+## 3. Tech Stack
 
-## Tech Stack
+### Frontend stack
 
-### Frontend
+| Technology | Purpose |
+|---|---|
+| Next.js 16 | App framework |
+| React 19 | UI layer |
+| TypeScript | Type safety |
+| Tailwind CSS 4 | Styling |
+| Clerk | Authentication |
+| Axios | API requests |
+| Framer Motion | UI animations |
+| Lucide React | Icons |
+| `clsx` | Conditional classes |
 
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS 4
-- Clerk for auth
-- Axios for API calls
-- Framer Motion for animation
-- Lucide React for icons
-- `clsx` for conditional styling
+### Backend stack
 
-### Backend
+| Technology | Purpose |
+|---|---|
+| FastAPI | API framework |
+| Uvicorn | ASGI server |
+| SQLAlchemy | ORM / DB access |
+| PostgreSQL via `psycopg2-binary` | Database driver |
+| `python-dotenv` | Environment loading |
+| `pypdf` | PDF text extraction |
+| `PyJWT` + Clerk JWKS | Token verification |
+| Groq SDK | AI answer generation |
+| `python-multipart` | File uploads |
 
-- FastAPI
-- Uvicorn
-- SQLAlchemy
-- PostgreSQL driver via `psycopg2-binary`
-- `python-dotenv`
-- `pypdf`
-- `PyJWT`
-- Groq Python SDK
-- `httpx`
-- `python-multipart`
-- `cryptography`
+### AI / Retrieval stack
 
-### AI / Retrieval
+| Layer | Current Implementation |
+|---|---|
+| Retrieval source | Stored PDF text in database |
+| Chunking | Character chunking with overlap |
+| Ranking | Keyword overlap scoring |
+| Generation model | `llama-3.1-8b-instant` via Groq |
+| Source return | Backend returns source metadata |
+| Vector search | Not active in live flow |
 
-- Groq chat completion model:
-  - `llama-3.1-8b-instant`
-- Retrieval strategy in live flow:
-  - regex/token overlap scoring over text chunks
-- Inactive alternative prototype:
-  - ChromaDB + OpenAI embeddings in `backend/rag.py`
+## 4. High-Level Architecture
 
-## Repository Structure
+```mermaid
+flowchart LR
+    U[User] --> F[Next.js Frontend]
+    F --> C[Clerk Authentication]
+    F --> B[FastAPI Backend]
+    B --> D[(PostgreSQL)]
+    B --> G[Groq API]
+```
+
+### Responsibility map
+
+| Layer | Responsibility |
+|---|---|
+| Frontend | Pages, auth-aware UI, API calls, chat/upload/note displays |
+| Clerk | Sign-up, sign-in, session handling, token issuance |
+| Backend | Validation, database access, PDF processing, retrieval, AI prompting |
+| Database | Stores note text and extracted document text |
+| Groq | Generates answers from retrieved document chunks |
+
+## 5. Repository Structure
 
 ```text
 second-brain-app/
 ├── backend/
-│   ├── main.py              # FastAPI app and all active API routes
-│   ├── database.py          # SQLAlchemy engine/session setup
-│   ├── models.py            # NoteDB and DocumentDB models
-│   ├── auth.py              # Unused older auth helper
-│   ├── rag.py               # Unused prototype RAG implementation
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   ├── auth.py
+│   ├── rag.py
 │   ├── requirements.txt
 │   ├── Procfile
-│   ├── runtime.txt
-│   └── uploads/             # Existing local files in repo/backend workspace
+│   └── runtime.txt
 ├── frontend/
-│   ├── src/app/             # App Router pages
-│   ├── src/components/      # Shared UI components
-│   ├── middleware.ts        # Clerk protection for frontend routes
-│   ├── package.json
-│   └── README.md            # Default Next.js README, not the main project doc
-├── middleware.ts            # Duplicate middleware file at repo root
-└── README.md                # This file
+│   ├── src/app/
+│   ├── src/components/
+│   ├── middleware.ts
+│   └── package.json
+├── middleware.ts
+└── README.md
 ```
 
-## Architecture Overview
-
-```text
-User
-  -> Next.js frontend
-  -> Clerk auth session/token
-  -> FastAPI backend
-  -> PostgreSQL database
-  -> Groq API for answer generation
-```
-
-### Main System Responsibilities
-
-#### Frontend
-
-- Renders authenticated pages
-- Fetches Clerk token via `useAuth()`
-- Sends bearer token to backend
-- Displays notes, files, and AI responses
-- Provides the workspace UI shell through shared `Sidebar` and `Topbar`
-
-#### Backend
-
-- Validates Clerk JWTs using JWKS
-- Creates and reads note records
-- Validates and processes PDF uploads
-- Extracts text from PDFs
-- Stores extracted document text
-- Retrieves relevant chunks for AI prompts
-- Calls Groq and returns grounded answers
-
-#### Database
-
-- Stores notes
-- Stores uploaded document metadata and extracted text
-
-## Frontend Application Flow
-
-The routed frontend pages currently used are:
-
-- `/` -> Dashboard
-- `/notes` -> Notes page
-- `/uploads` -> Upload manager
-- `/memory` -> Search/memory UI with mock content
-- `/ai` -> AI chat over uploaded documents
-- `/sign-in` -> Clerk sign-in
-- `/sign-up` -> Clerk sign-up
-
-### Shared Layout Behavior
-
-The app uses:
-
-- `ClerkProvider` in `frontend/src/app/layout.tsx`
-- Clerk middleware in `frontend/middleware.ts`
-- Shared layout components:
-  - `frontend/src/components/layout/Sidebar.tsx`
-  - `frontend/src/components/layout/Topbar.tsx`
-
-The sidebar provides navigation between main product areas. The topbar renders a static search placeholder, notifications button, and auth controls.
-
-### Dashboard Page
-
-File: `frontend/src/app/page.tsx`
-
-Current behavior:
-
-- Requires authentication.
-- Fetches notes from `GET /notes`.
-- Displays the five most recent notes in a compact dashboard card.
-- Uses the shared sidebar and topbar.
-
-Important detail:
-
-- The routed dashboard page is not the richer prototype in `frontend/src/app/Homepage.tsx`.
-- `Homepage.tsx` and `HomeUI.tsx` are extra prototype files and are not the route entry used by `/`.
-
-### Notes Page
-
-File: `frontend/src/app/notes/page.tsx`
-
-Current behavior:
-
-- Requires authentication.
-- Fetches all notes from `GET /notes`.
-- Shows a left-side note list.
-- Shows the selected note in a center panel.
-- Renders a right-side "AI Copilot" panel that is currently visual only.
-
-### Uploads Page
-
-File: `frontend/src/app/uploads/page.tsx`
-
-Current behavior:
-
-- Requires authentication.
-- Fetches document metadata from `GET /documents`.
-- Lets the user choose a file and upload it to `POST /upload`.
-- Shows backend validation or success messages.
-- Displays uploaded files as a simple document library list.
-
-Important detail:
-
-- The upload UI copy suggests a general file library, but the backend only accepts PDFs.
-
-### Memory Page
-
-File: `frontend/src/app/memory/page.tsx`
-
-Current behavior:
-
-- Requires authentication.
-- Uses hardcoded mock results in the page component.
-- Filters those mock results client-side based on the search box.
-
-Important detail:
-
-- This page is a UI prototype, not a live retrieval system yet.
-
-### AI Page
-
-File: `frontend/src/app/ai/page.tsx`
-
-Current behavior:
-
-- Requires authentication.
-- Fetches uploaded documents from `GET /documents`.
-- Shows a chat-like interface.
-- Sends the user question to `POST /ask`.
-- Displays the backend answer in the conversation.
-
-Important detail:
-
-- The frontend currently displays only `answer`.
-- The backend also returns `sources`, but those are not rendered yet.
-
-## Backend Application Flow
-
-The active backend is defined in `backend/main.py`.
-
-### Startup Behavior
-
-When the FastAPI app starts, it:
-
-1. Loads environment variables with `load_dotenv()`.
-2. Reads allowed frontend origins for CORS.
-3. Configures CORS middleware.
-4. Creates database tables through `Base.metadata.create_all(bind=engine)`.
-5. Loads and validates:
-   - `GROQ_API_KEY`
-   - `CLERK_JWKS_URL`
-6. Creates:
-   - a Clerk JWKS client
-   - a Groq client
-
-### Authentication Flow
-
-Auth is implemented in `get_current_user()` inside `backend/main.py`.
-
-The backend:
-
-- Reads a bearer token from the `Authorization` header when present.
-- Falls back to the `__session` cookie if no bearer token is present.
-- Fetches the JWT signing key from Clerk JWKS.
-- Verifies the JWT with RS256.
-- Skips audience verification.
-- Optionally checks `azp` against allowed origins.
-- Returns the Clerk `sub` claim as `user_id`.
-
-Important limitation:
-
-- The backend validates the user identity, but it does not use `user_id` to filter note or document queries.
-- In the current implementation, authenticated users would read from the same shared `notes` and `documents` tables.
-
-## Data Model
-
-Defined in `backend/models.py`.
-
-### `NoteDB`
-
-- `id`: integer primary key
-- `content`: text, required
-- `created_at`: timestamp with timezone, default `now()`
-
-### `DocumentDB`
-
-- `id`: integer primary key
-- `filename`: string(255), required
-- `content`: text, required
-- `created_at`: timestamp with timezone, default `now()`
-
-Important limitation:
-
-- Neither table currently stores a user ID.
-- That is the main reason data is not scoped per authenticated user.
-
-## Active API Endpoints
-
-### `GET /`
-
-Purpose:
-
-- Health-style root endpoint
-
-Response:
-
-- `{ "message": "Backend running" }`
-
-### `GET /notes`
-
-Purpose:
-
-- Returns notes ordered by newest ID first
-
-Auth:
-
-- Required
-
-Behavior:
-
-- Queries all notes in descending ID order
-
-### `POST /notes`
-
-Purpose:
-
-- Creates a new note
-
-Auth:
-
-- Required
-
-Request body:
+### Important files
+
+| File | Role |
+|---|---|
+| `backend/main.py` | Active FastAPI app and routes |
+| `backend/database.py` | DB engine and session setup |
+| `backend/models.py` | SQLAlchemy models |
+| `backend/rag.py` | Prototype RAG path, not used by live app |
+| `frontend/src/app/page.tsx` | Routed dashboard page |
+| `frontend/src/app/notes/page.tsx` | Notes view |
+| `frontend/src/app/uploads/page.tsx` | Upload manager |
+| `frontend/src/app/memory/page.tsx` | Mock memory search page |
+| `frontend/src/app/ai/page.tsx` | AI chat page |
+| `frontend/src/components/layout/Sidebar.tsx` | Main workspace navigation |
+| `frontend/src/components/layout/Topbar.tsx` | Top navigation bar |
+| `frontend/middleware.ts` | Clerk route protection |
+
+## 6. Frontend Pages
+
+### Route map
+
+| Route | Purpose | Status |
+|---|---|---|
+| `/` | Dashboard | Live |
+| `/notes` | Notes list and reader | Live |
+| `/uploads` | Upload and document library | Live |
+| `/memory` | Memory search UI | Prototype |
+| `/ai` | Chat with uploaded documents | Live |
+| `/sign-in` | Login page | Live |
+| `/sign-up` | Registration page | Live |
+
+### Page behavior summary
+
+| Page | What user sees | Backend connection |
+|---|---|---|
+| Dashboard | Recent notes summary | `GET /notes` |
+| Notes | Notes list + selected note panel | `GET /notes` |
+| Uploads | PDF upload panel + uploaded docs list | `GET /documents`, `POST /upload` |
+| Memory | Search UI over mock records | None yet |
+| AI | Chat box + uploaded source list | `GET /documents`, `POST /ask` |
+
+## 7. Backend API
+
+### API summary
+
+| Method | Endpoint | Purpose | Auth |
+|---|---|---|---|
+| `GET` | `/` | Health/root response | No |
+| `GET` | `/notes` | Fetch notes | Yes |
+| `POST` | `/notes` | Create note | Yes |
+| `POST` | `/upload` | Upload PDF and extract text | Yes |
+| `GET` | `/documents` | Fetch uploaded documents | Yes |
+| `POST` | `/ask` | Ask AI over uploaded docs | Yes |
+
+### Request/response examples
+
+#### Create note
 
 ```json
+POST /notes
 {
-  "content": "Your note text"
+  "content": "Meeting notes for product review"
 }
 ```
 
-Validation:
-
-- Trims whitespace
-- Rejects empty content
-
-Response:
-
-- Returns the saved note fields
-
-### `POST /upload`
-
-Purpose:
-
-- Uploads a PDF, extracts text, and stores the extracted content
-
-Auth:
-
-- Required
-
-Validation:
-
-- filename must exist
-- content type must be `application/pdf`
-- extension must be `.pdf`
-- file must not be empty
-- file size must be <= 5 MB
-
-Processing flow:
-
-1. Read uploaded bytes into memory.
-2. Write them to a temporary file.
-3. Use `PdfReader` to extract page text.
-4. Clean whitespace.
-5. Reject the file if no text can be extracted.
-6. Check for an existing document with the same filename and same extracted content.
-7. If duplicate, return the existing document info.
-8. Otherwise insert a new `DocumentDB` row.
-9. Delete the temporary file in `finally`.
-
-Important detail:
-
-- The backend stores extracted text in the database.
-- It does not persist the original PDF file as part of the active endpoint logic.
-
-### `GET /documents`
-
-Purpose:
-
-- Returns uploaded document metadata ordered by newest first
-
-Auth:
-
-- Required
-
-Behavior:
-
-- Queries all documents in descending ID order
-
-### `POST /ask`
-
-Purpose:
-
-- Answers a user question using uploaded document content
-
-Auth:
-
-- Required
-
-Request body:
+#### Ask AI
 
 ```json
+POST /ask
 {
-  "question": "Ask something about uploaded PDFs"
+  "question": "What does the uploaded document say about memory retrieval?"
 }
 ```
 
-Flow:
+#### Upload validation rules
 
-1. Trim and validate the question.
-2. Load all documents from the database.
-3. Chunk each document into overlapping windows.
-4. Score each chunk by keyword overlap with the question.
-5. Keep the top 5 chunks.
-6. Build a context prompt containing chunk text and source labels.
-7. Call Groq chat completion.
-8. Return:
-   - `answer`
-   - `sources`
+| Rule | Value |
+|---|---|
+| Allowed file type | PDF only |
+| Allowed content type | `application/pdf` |
+| Required extension | `.pdf` |
+| Max size | 5 MB |
+| Empty file allowed | No |
 
-Fallback behavior:
+## 8. Data Model
 
-- If there are no documents:
-  - `"No uploaded documents found."`
-- If no chunks match:
-  - `"Not found in uploaded documents."`
-- If Groq fails:
-  - `"Something went wrong. Check backend logs."`
+### Database tables
 
-## Retrieval / RAG Logic
+| Table | Columns | Purpose |
+|---|---|---|
+| `notes` | `id`, `content`, `created_at` | Stores notes |
+| `documents` | `id`, `filename`, `content`, `created_at` | Stores extracted PDF text and metadata |
 
-The live retrieval implementation is intentionally simple.
+### Data model diagram
 
-### Chunking
+```mermaid
+erDiagram
+    NOTES {
+        int id PK
+        text content
+        datetime created_at
+    }
 
-Function: `chunk_text()`
+    DOCUMENTS {
+        int id PK
+        string filename
+        text content
+        datetime created_at
+    }
+```
 
-- Default chunk size: `800` characters
-- Overlap: `120` characters
-- Input is whitespace-normalized first
+### Important limitation
 
-### Relevance Scoring
+| Limitation | Impact |
+|---|---|
+| No `user_id` in `notes` | Notes are not scoped per user |
+| No `user_id` in `documents` | Uploaded documents are not scoped per user |
 
-Function: `score_chunk()`
+## 9. Authentication Flow
 
-- Lowercases both chunk and question
-- Extracts question words with regex
-- Ignores words shorter than 3 characters
-- Scores by counting occurrences of question words inside each chunk
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Clerk
+    participant Backend
 
-### Retrieval
+    User->>Frontend: Open protected route
+    Frontend->>Clerk: Check session
+    Clerk-->>Frontend: Auth state / token
+    Frontend->>Backend: Send bearer token
+    Backend->>Clerk: Verify JWT via JWKS
+    Clerk-->>Backend: Signing key
+    Backend-->>Frontend: Authorized response
+```
 
-Function: `retrieve_relevant_chunks()`
+### Auth behavior summary
 
-- Scores every chunk across every stored document
-- Sorts descending by score
-- Returns the top `5`
+| Step | What happens |
+|---|---|
+| 1 | Clerk protects frontend routes |
+| 2 | Frontend gets token via `useAuth().getToken()` |
+| 3 | Token is sent to FastAPI in `Authorization: Bearer ...` |
+| 4 | Backend verifies JWT using Clerk JWKS |
+| 5 | Backend extracts `sub` as `user_id` |
 
-### Generation
+## 10. User Flow
 
-Groq receives a prompt that instructs the model to:
+### Full user journey
 
-- answer only from provided context
-- say exactly `Not found in uploaded documents.` when the answer is not present
-- keep the answer concise and factual
+```mermaid
+flowchart TD
+    A[User signs in] --> B[Open dashboard]
+    B --> C[View notes]
+    B --> D[Open uploads page]
+    D --> E[Upload PDF]
+    E --> F[Backend extracts text]
+    F --> G[Document saved]
+    G --> H[Open AI page]
+    H --> I[Ask question]
+    I --> J[Backend retrieves relevant chunks]
+    J --> K[Groq generates answer]
+    K --> L[Frontend shows response]
+```
 
-This is a keyword-based RAG pipeline, not an embeddings-based retrieval system.
+### User flow by feature
 
-## User Flow
+| Feature | User action | System result |
+|---|---|---|
+| Sign in | User authenticates with Clerk | Protected pages become accessible |
+| View notes | User opens dashboard or notes page | Frontend fetches notes |
+| Upload PDF | User uploads a file | Backend validates, extracts, and stores text |
+| View uploads | User opens uploads page | Stored document list is shown |
+| Ask AI | User submits a question | Backend retrieves relevant chunks and returns an answer |
+| Search memory | User types in memory search box | Mock results are filtered client-side |
 
-### New User Flow
+## 11. Project Flow
 
-1. User lands on a protected route such as `/`.
-2. Clerk middleware redirects the user to sign in if not authenticated.
-3. User signs up or signs in via Clerk.
-4. User returns to the workspace.
+### Backend processing flow for uploads
 
-### Notes Flow
+```mermaid
+flowchart TD
+    A[Receive upload request] --> B{File exists?}
+    B -- No --> X[Return 400]
+    B -- Yes --> C{PDF content type?}
+    C -- No --> Y[Return 400]
+    C -- Yes --> D{PDF extension?}
+    D -- No --> Z[Return 400]
+    D -- Yes --> E{Size <= 5MB?}
+    E -- No --> P[Return 413]
+    E -- Yes --> F[Read file bytes]
+    F --> G[Write temp PDF]
+    G --> H[Extract text with pypdf]
+    H --> I{Text extracted?}
+    I -- No --> Q[Return 400]
+    I -- Yes --> R[Check duplicate]
+    R --> S[Save document text]
+    S --> T[Return success]
+```
 
-1. User opens the dashboard or notes page.
-2. Frontend gets a Clerk token with `getToken()`.
-3. Frontend calls `GET /notes`.
-4. Backend validates the token and returns notes.
-5. User views note content.
+### Backend processing flow for AI Q&A
 
-For note creation, the implemented backend expects `POST /notes` with JSON body content. The richer prototype dashboard files suggest inline note capture, but the routed `/` page currently only lists notes and does not expose the active note creation form.
+```mermaid
+flowchart TD
+    A[Receive question] --> B{Question empty?}
+    B -- Yes --> X[Return 400]
+    B -- No --> C[Load all documents]
+    C --> D{Any documents?}
+    D -- No --> Y[Return no documents message]
+    D -- Yes --> E[Chunk document text]
+    E --> F[Score chunks by keyword overlap]
+    F --> G[Select top 5 chunks]
+    G --> H{Any relevant chunks?}
+    H -- No --> Z[Return not found]
+    H -- Yes --> I[Build context prompt]
+    I --> J[Call Groq model]
+    J --> K[Return answer and sources]
+```
 
-### Upload Flow
+## 12. Retrieval / RAG Design
 
-1. User opens `/uploads`.
-2. Frontend fetches existing document metadata.
-3. User selects a PDF.
-4. Frontend sends multipart form data to `POST /upload` with bearer token.
-5. Backend validates type and size.
-6. Backend extracts text from the PDF.
-7. Backend stores document metadata plus extracted text.
-8. Frontend refreshes the library list.
+### Current live RAG pipeline
 
-### AI Question Flow
+| Stage | Implementation |
+|---|---|
+| Source data | Extracted PDF text from `documents` table |
+| Cleaning | Whitespace normalization |
+| Chunking | 800-character chunks with 120-character overlap |
+| Matching | Word overlap scoring |
+| Top results | Best 5 chunks |
+| Prompting | Context + user question |
+| Output | Concise factual answer |
 
-1. User opens `/ai`.
-2. Frontend loads uploaded document list.
-3. User asks a question.
-4. Frontend posts the question to `POST /ask`.
-5. Backend retrieves relevant text chunks from stored documents.
-6. Backend sends those chunks to Groq.
-7. Backend returns the answer plus source metadata.
-8. Frontend appends the answer to the chat thread.
+### RAG logic diagram
 
-### Memory Search Flow
+```mermaid
+flowchart LR
+    D[(Documents)] --> C[Chunk text]
+    C --> S[Score chunks]
+    S --> T[Top 5 chunks]
+    T --> P[Prompt builder]
+    Q[User question] --> P
+    P --> G[Groq model]
+    G --> A[Answer + sources]
+```
 
-Current implementation:
+### Current limitations of retrieval
 
-1. User opens `/memory`.
-2. User types into the search field.
-3. The page filters hardcoded mock entries in memory.
+| Limitation | Explanation |
+|---|---|
+| No embeddings | Retrieval is keyword-based |
+| No semantic similarity search | Wording mismatch can reduce answer quality |
+| Documents only | Notes are not part of AI retrieval |
+| Sources not shown in UI | Backend returns sources but frontend does not render them |
 
-This is a design placeholder for a future real search experience.
-
-## Environment Variables
+## 13. Environment Variables
 
 ### Backend
 
-The backend explicitly requires:
-
-```env
-DATABASE_URL=postgresql://...
-GROQ_API_KEY=...
-CLERK_JWKS_URL=...
-ALLOWED_ORIGINS=http://localhost:3000
-```
-
-Notes:
-
-- `DATABASE_URL` is required in `backend/database.py`.
-- `GROQ_API_KEY` is required in `backend/main.py`.
-- `CLERK_JWKS_URL` is required in `backend/main.py`.
-- `ALLOWED_ORIGINS` defaults to `http://localhost:3000` if omitted.
+| Variable | Required | Purpose |
+|---|---|---|
+| `DATABASE_URL` | Yes | Database connection |
+| `GROQ_API_KEY` | Yes | Groq access |
+| `CLERK_JWKS_URL` | Yes | Clerk JWT verification |
+| `ALLOWED_ORIGINS` | No | CORS allowlist, defaults to `http://localhost:3000` |
 
 ### Frontend
 
-The frontend explicitly references:
+| Variable | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Yes | Backend base URL |
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+### Clerk note
 
-The frontend also uses Clerk. The Clerk package integration strongly implies the standard Clerk environment variables are needed in the Next.js app, even though they are not referenced directly in this codebase. In practice that usually means values such as:
+The frontend uses Clerk through `ClerkProvider` and Clerk components, so standard Clerk environment variables are also expected during real setup, even though their exact names are not directly referenced in this codebase.
 
-```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
-CLERK_SECRET_KEY=...
-```
+## 14. Local Setup
 
-That requirement is an inference from the Clerk setup, not a direct string lookup from this repo.
+### Prerequisites
 
-## Local Development Setup
+| Requirement | Needed for |
+|---|---|
+| Node.js + npm | Frontend |
+| Python 3.10 | Backend |
+| PostgreSQL | Database |
+| Clerk project | Authentication |
+| Groq API key | AI answers |
 
-## Prerequisites
-
-- Node.js for the frontend
-- npm
-- Python 3.10.x for the backend
-- PostgreSQL
-- Clerk project credentials
-- Groq API key
-
-### 1. Clone and enter the project
-
-```bash
-git clone <your-repo-url>
-cd second-brain-app
-```
-
-### 2. Start the backend
+### Backend setup
 
 ```bash
 cd backend
@@ -609,7 +434,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. Start the frontend
+### Frontend setup
 
 ```bash
 cd frontend
@@ -617,156 +442,87 @@ npm install
 npm run dev
 ```
 
-### 4. Open the app
+### Local URLs
 
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
+| Service | URL |
+|---|---|
+| Frontend | `http://localhost:3000` |
+| Backend | `http://localhost:8000` |
 
-## Deployment Clues Present In Repo
+## 15. Deployment Hints
 
-The repo includes:
+### Deployment clues already in repo
 
-- `backend/Procfile`
-- `backend/runtime.txt`
+| File | Meaning |
+|---|---|
+| `backend/Procfile` | Procfile-style backend deployment |
+| `backend/runtime.txt` | Python runtime pin |
 
-That suggests the backend has at least been prepared for a platform that understands Procfiles, such as Heroku-style deployment systems.
-
-Current backend deployment command:
+### Backend start command
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
-## Styling And UI Notes
+## 16. Current Strengths
 
-The visual design aims for a dark premium dashboard aesthetic:
+| Strength | Why it matters |
+|---|---|
+| Clean frontend navigation | Easy to understand product areas |
+| Working auth integration | Secure access to workspace pages |
+| Real PDF-to-text processing | Documents become queryable |
+| Working AI answer path | App already demonstrates useful RAG behavior |
+| Clear MVP separation | Core logic is understandable and extendable |
 
-- dark panels
-- soft gradients
-- rounded cards
-- icon-based sidebar navigation
-- animated cards using Framer Motion
+## 17. Current Gaps / Risks
 
-Important implementation note:
+| Gap | Why it matters |
+|---|---|
+| No per-user DB ownership | Biggest privacy and correctness issue |
+| Memory page is mock-only | Feature looks more complete than it is |
+| Old prototype files exist | Can confuse contributors |
+| No migrations | Schema changes will be harder to manage |
+| Keyword retrieval only | Lower retrieval quality than semantic search |
+| Sources not shown in AI UI | Users cannot inspect evidence directly |
 
-- `globals.css` uses `Inter, Arial, Helvetica, sans-serif`.
-- That differs from the default Next README mention of Geist.
-- The active codebase styling is custom and Tailwind-driven.
+## 18. Prototype vs Live Code
 
-## Important Files To Know
+### Live routed pages
 
-### Backend
+| Live file | Used by route |
+|---|---|
+| `frontend/src/app/page.tsx` | `/` |
+| `frontend/src/app/notes/page.tsx` | `/notes` |
+| `frontend/src/app/uploads/page.tsx` | `/uploads` |
+| `frontend/src/app/memory/page.tsx` | `/memory` |
+| `frontend/src/app/ai/page.tsx` | `/ai` |
 
-- `backend/main.py`: all active routes, auth validation, PDF processing, AI prompt flow
-- `backend/database.py`: database engine and session lifecycle
-- `backend/models.py`: SQLAlchemy models
-- `backend/auth.py`: older helper, not used by active routes
-- `backend/rag.py`: experimental/inactive RAG path
+### Prototype / extra files
 
-### Frontend
+| File | Status |
+|---|---|
+| `frontend/src/app/Homepage.tsx` | Prototype / not routed |
+| `frontend/src/app/HomeUI.tsx` | Prototype / not routed |
+| `frontend/src/app/notes/Homepage.tsx` | Prototype / not routed |
+| `frontend/src/app/uploads/Homepage.tsx` | Prototype / not routed |
+| `frontend/src/app/memory/Homepage.tsx` | Prototype / not routed |
+| `frontend/src/app/ai/AIPage.tsx` | Prototype / not routed |
+| `backend/auth.py` | Old helper, not used by active backend flow |
+| `backend/rag.py` | Prototype retrieval path, not wired into active routes |
 
-- `frontend/src/app/layout.tsx`: app root and Clerk provider
-- `frontend/middleware.ts`: protected route enforcement
-- `frontend/src/app/page.tsx`: routed dashboard page
-- `frontend/src/app/notes/page.tsx`: notes page
-- `frontend/src/app/uploads/page.tsx`: uploads page
-- `frontend/src/app/memory/page.tsx`: memory prototype page
-- `frontend/src/app/ai/page.tsx`: AI page
-- `frontend/src/components/layout/Sidebar.tsx`: workspace navigation
-- `frontend/src/components/layout/Topbar.tsx`: top navigation bar
+## 19. Recommended Next Steps
 
-## Known Gaps, Risks, And Inconsistencies
+| Priority | Improvement |
+|---|---|
+| High | Add `user_id` to notes and documents |
+| High | Filter every query by authenticated user |
+| High | Connect memory page to real backend search |
+| Medium | Render AI source citations in frontend |
+| Medium | Replace keyword retrieval with embeddings/vector search |
+| Medium | Remove or archive obsolete prototype files |
+| Medium | Add DB migrations |
+| Medium | Add backend/frontend tests |
 
-This section is important for anyone inheriting the project.
+## 20. Short Summary
 
-### 1. Data is not user-scoped yet
-
-The backend authenticates users but does not store `user_id` on notes or documents and does not filter queries by user.
-
-Impact:
-
-- all authenticated users would share the same notes and documents
-- this is the biggest functional and privacy gap in the current implementation
-
-### 2. Prototype files exist beside live route files
-
-Examples:
-
-- `frontend/src/app/Homepage.tsx`
-- `frontend/src/app/HomeUI.tsx`
-- `frontend/src/app/notes/Homepage.tsx`
-- `frontend/src/app/uploads/Homepage.tsx`
-- `frontend/src/app/memory/Homepage.tsx`
-- `frontend/src/app/ai/AIPage.tsx`
-
-Impact:
-
-- these can confuse new contributors
-- some suggest functionality not available in the current routed pages
-- some appear incomplete and would not serve as route entries as-is
-
-### 3. The memory page is not connected to backend retrieval
-
-Impact:
-
-- users may assume search is live when it is not
-- the page currently demonstrates design intent, not actual data retrieval
-
-### 4. Active RAG is keyword-based, not semantic
-
-Impact:
-
-- relevant answers may be missed when question wording differs from document wording
-- retrieval quality will be weaker than embedding-based search
-
-### 5. `backend/rag.py` is stale relative to active backend flow
-
-It uses:
-
-- ChromaDB
-- OpenAI embeddings
-- `gpt-4o-mini`
-
-But the live backend uses:
-
-- direct SQL document loading
-- keyword chunk scoring
-- Groq `llama-3.1-8b-instant`
-
-Impact:
-
-- contributors could mistake the inactive prototype for the production path
-
-### 6. Duplicate middleware file at repo root
-
-There is also a `middleware.ts` at the repo root that matches the frontend version.
-
-Impact:
-
-- it may be leftover duplication
-- the meaningful Next.js middleware for the app is the one inside `frontend/`
-
-### 7. Dashboard prototypes do not match the active note API contract
-
-Some prototype files attempt note creation differently from the active backend expectation.
-
-Impact:
-
-- those prototypes should not be treated as the source of truth for API usage
-
-## Recommended Next Improvements
-
-If this project is continued, the most valuable next steps are:
-
-1. Add `user_id` to notes and documents and filter every query by user.
-2. Connect the `Memory` page to real backend search.
-3. Show `sources` in the AI page.
-4. Decide whether to keep keyword retrieval or move to embeddings/vector search.
-5. Remove or archive obsolete prototype files.
-6. Add migrations instead of relying only on `create_all()`.
-7. Add tests for auth, uploads, and retrieval behavior.
-8. Persist original files or object storage references if file download/viewing is needed later.
-
-## Plain-English Summary
-
-Second Brain App is an authenticated full-stack workspace for capturing notes, uploading PDFs, and asking AI questions over uploaded document content. The frontend is a polished Next.js dashboard with Clerk auth. The backend is a FastAPI service that stores notes and extracted PDF text in a SQL database and uses a simple retrieval pipeline plus Groq to generate answers. The project already demonstrates the core product idea well, but it is still in MVP/prototype territory because search is partly mocked, data is not user-isolated yet, and some unused prototype files still exist in the repo.
+Second Brain App is a full-stack authenticated knowledge workspace with a Next.js frontend and a FastAPI backend. Users can sign in, browse notes, upload PDFs, and ask AI questions about uploaded documents. The live AI flow already works, but the project is still in MVP stage because user data is not isolated, memory search is still mocked, and some prototype files remain in the repo.
